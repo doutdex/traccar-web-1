@@ -43,25 +43,25 @@ public class SettingsController implements NavView.SettingsHandler {
     private Messages i18n = GWT.create(Messages.class);
     private final UserSettingsDialog.UserSettingsHandler userSettingsHandler;
     private final UserSettingsDialog.UserSettingsHandler defaultUserSettingsHandler;
-    private final GeoFenceController geoFenceController;
-    private final DeviceController deviceController;
+    private final ListStore<GeoFence> geoFenceStore;
+    private final ListStore<Device> deviceStore;
     private final UserDialog.EventRuleHandler eventRuleHandler;
 
     public SettingsController(UserSettingsDialog.UserSettingsHandler userSettingsHandler,
                               UserSettingsDialog.UserSettingsHandler defaultUserSettingsHandler,
-                              GeoFenceController geoFenceController,
-                              DeviceController deviceController) {
+                              ListStore<GeoFence> geoFenceStore,
+                              ListStore<Device> deviceStore) {
         this.userSettingsHandler = userSettingsHandler;
         this.defaultUserSettingsHandler = defaultUserSettingsHandler;
-        this.geoFenceController = geoFenceController;
-        this.deviceController = deviceController;
+        this.geoFenceStore = geoFenceStore;
+        this.deviceStore = deviceStore;
         eventRuleHandler = new EventRuleHandlerImpl();
     }
 
     @Override
     public void onAccountSelected() {
         new UserDialog(
-                ApplicationContext.getInstance().getUser(), geoFenceController, deviceController,
+                ApplicationContext.getInstance().getUser(),
                 new UserDialog.UserHandler() {
                     @Override
                     public void onSave(final User user, final ListStore<EventRule> eventRulesStore) {
@@ -73,7 +73,7 @@ public class SettingsController implements NavView.SettingsHandler {
                             }
                         });
                     }
-        }, eventRuleHandler).show();
+        }, eventRuleHandler, geoFenceStore, deviceStore).show();
     }
 
     @Override
@@ -116,7 +116,7 @@ public class SettingsController implements NavView.SettingsHandler {
                                         msg.addDialogHideHandler(new DialogHideEvent.DialogHideHandler() {
                                             @Override
                                             public void onDialogHide(DialogHideEvent event) {
-                                                new UserDialog(user, geoFenceController, deviceController, AddHandler.this, eventRuleHandler).show();
+                                                new UserDialog(user, AddHandler.this, eventRuleHandler, geoFenceStore, deviceStore).show();
                                             }
                                         });
                                         msg.show();
@@ -125,7 +125,7 @@ public class SettingsController implements NavView.SettingsHandler {
                             }
                         }
 
-                        new UserDialog(new User(), geoFenceController, deviceController, new AddHandler(), eventRuleHandler).show();
+                        new UserDialog(new User(), new AddHandler(), eventRuleHandler, geoFenceStore, deviceStore).show();
                     }
 
                     @Override
