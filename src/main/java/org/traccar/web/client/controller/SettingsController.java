@@ -64,7 +64,7 @@ public class SettingsController implements NavView.SettingsHandler {
                 ApplicationContext.getInstance().getUser(),
                 new UserDialog.UserHandler() {
                     @Override
-                    public void onSave(final User user, final ListStore<EventRule> eventRulesStore) {
+                    public void onSave(User user, final ListStore<EventRule> eventRulesStore) {
                         Application.getDataService().updateUser(user, new BaseAsyncCallback<User>(i18n) {
                             @Override
                             public void onSuccess(User result) {
@@ -291,8 +291,9 @@ public class SettingsController implements NavView.SettingsHandler {
     public static class EventRuleHandlerImpl implements UserDialog.EventRuleHandler {
         final EventRuleServiceAsync service = GWT.create(EventRuleService.class);
         private Messages i18n = GWT.create(Messages.class);
+
         @Override
-        public void onShowEventRules(final ListStore<EventRule> eventRulesStore,User user) {
+        public void onShowEventRules(final ListStore<EventRule> eventRulesStore, User user) {
             final EventRuleServiceAsync service = GWT.create(EventRuleService.class);
             service.getEventRules(user, new BaseAsyncCallback<List<EventRule>>(i18n) {
                 @Override
@@ -301,6 +302,7 @@ public class SettingsController implements NavView.SettingsHandler {
                 }
             });
         }
+
         @Override
         public void onSave(final ListStore<EventRule> eventRulesStore, User user) {
             for (Store<EventRule>.Record record : eventRulesStore.getModifiedRecords()) {
@@ -309,7 +311,7 @@ public class SettingsController implements NavView.SettingsHandler {
                 for (Store.Change<EventRule, ?> change : record.getChanges()) {
                     change.modify(eventRule);
                 }
-                eventRule.setTimeZoneShift((long) new Date().getTimezoneOffset()*60*1000);
+                eventRule.setTimeZoneShift(new Date().getTimezoneOffset() * 60 * 1000L);
                 if (eventRule.getId() <= 0) {
                     eventRule.setId(0);
                     service.addEventRule(user, eventRule, new BaseAsyncCallback<EventRule>(i18n) {

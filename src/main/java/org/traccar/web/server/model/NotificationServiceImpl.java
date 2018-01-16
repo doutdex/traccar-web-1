@@ -61,9 +61,6 @@ import java.util.regex.Pattern;
 
 @Singleton
 public class NotificationServiceImpl extends RemoteServiceServlet implements NotificationService {
-
-    private static Logger logger2 = Logger.getLogger(NotificationServiceImpl.class.getName());
-
     private static Pattern EVENT_RULE_TIME_FRAME_PATTERN = Pattern.compile("(\\d{1,2}(:\\d{1,2})?[AP]M)\\-(\\d{1,2}(:\\d{1,2})?[AP]M)");
     private static Pattern EVENT_RULE_COURSE_PATTERN = Pattern.compile("(\\d{1,3})\\-(\\d{1,3})");
     private static SimpleDateFormat EVENT_RULE_TIME_FRAME_FORMAT_01 = new SimpleDateFormat("h:mm a");
@@ -94,7 +91,7 @@ public class NotificationServiceImpl extends RemoteServiceServlet implements Not
         @Transactional
         @Override
         public void doWork() throws Exception {
-            logger2.warning("enter");
+            logger.warning("enter");
             Set<DeviceEventType> eventTypes = new HashSet<>();
             for (User user : entityManager.get()
                     .createQuery("SELECT u FROM User u INNER JOIN FETCH u.notificationEvents", User.class)
@@ -110,7 +107,7 @@ public class NotificationServiceImpl extends RemoteServiceServlet implements Not
                 eventRules.add(eventRule);
             }
 
-            logger2.warning("[eventTypes.isEmpty():" + eventTypes.isEmpty() + "], [eventRuleTypes.isEmpty():" + eventRuleTypes.isEmpty() + "]");
+            logger.warning("[eventTypes.isEmpty():" + eventTypes.isEmpty() + "], [eventRuleTypes.isEmpty():" + eventRuleTypes.isEmpty() + "]");
             if (eventTypes.isEmpty() && eventRuleTypes.isEmpty()) {
                 return;
             }
@@ -139,7 +136,7 @@ public class NotificationServiceImpl extends RemoteServiceServlet implements Not
                 }
 
                     Device device = event.getDevice();
-                    logger2.warning("01 [type:" + event.getType() + "] [device.SendNotifications:" + device.getSendNotifications() + "]");
+                    logger.warning("01 [type:" + event.getType() + "] [device.SendNotifications:" + device.getSendNotifications() + "]");
                     if (Boolean.FALSE.equals(device.getSendNotifications())) {
                         continue;
                     }
@@ -171,7 +168,7 @@ public class NotificationServiceImpl extends RemoteServiceServlet implements Not
                         .setParameter("types", eventRuleTypes)
                         .getResultList()) {
                     Device device = event.getDevice();
-                    logger2.warning("02 [type:" + event.getType() + "] [device.SendNotifications:" + device.getSendNotifications() + "]");
+                    logger.warning("02 [type:" + event.getType() + "] [device.SendNotifications:" + device.getSendNotifications() + "]");
                     if (Boolean.FALSE.equals(device.getSendNotifications())) {
                         continue;
                     }
@@ -183,24 +180,24 @@ public class NotificationServiceImpl extends RemoteServiceServlet implements Not
                     }
 
                     for (User devUser : event.getDevice().getUsers()) {
-                        logger2.warning("[device user:" + devUser.getLogin() + "]");
+                        logger.warning("[device user:" + devUser.getLogin() + "]");
                     }
                     for (User adminUser : admins) {
-                        logger2.warning("[adminUser:" + adminUser.getLogin() + "]");
+                        logger.warning("[adminUser:" + adminUser.getLogin() + "]");
                     }
-                    logger2.warning("03 [pos.serverTime:" + event.getPosition().getServerTime() + "] [pos.Time:" + event.getPosition().getTime() + "] [now:" + new Date() + "]");
+                    logger.warning("03 [pos.serverTime:" + event.getPosition().getServerTime() + "] [pos.Time:" + event.getPosition().getTime() + "] [now:" + new Date() + "]");
                     if (new Date().getTime() - event.getPosition().getTime().getTime() > 3*60*60*1000) {
                         event.setNotificationSent(true);
                         continue;
                     }
 eventRule:          for (EventRule eventRule : eventRules) {
-                        logger2.warning("03 [event.device:" + event.getDevice().getId() + "] [rule.device:" + eventRule.getDevice().getId() + "] [event.type:" + event.getType() + "] [rule.type:" + eventRule.getDeviceEventType() + "] [user:" + eventRule.getUser().getLogin() + "]");
-                        logger2.warning("03 [device users contains:" + event.getDevice().getUsers().contains(eventRule.getUser()) + "] [admins contains:" + admins.contains(eventRule.getUser()) + "]");
+                        logger.warning("03 [event.device:" + event.getDevice().getId() + "] [rule.device:" + eventRule.getDevice().getId() + "] [event.type:" + event.getType() + "] [rule.type:" + eventRule.getDeviceEventType() + "] [user:" + eventRule.getUser().getLogin() + "]");
+                        logger.warning("03 [device users contains:" + event.getDevice().getUsers().contains(eventRule.getUser()) + "] [admins contains:" + admins.contains(eventRule.getUser()) + "]");
                         if (event.getDevice().getId() == eventRule.getDevice().getId() && event.getType() == eventRule.getDeviceEventType()
                                 && (event.getDevice().getUsers().contains(eventRule.getUser()) || admins.contains(eventRule.getUser()))
                                 && isTimeFrameOk(event.getPosition(), eventRule.getTimeFrame(), eventRule.getTimeZoneShift())
                                 && isCourseOk(event.getPosition(), eventRule.getCourse())) {
-                            logger2.warning("03 event_for_notification");
+                            logger.warning("03 event_for_notification");
                             switch (eventRule.getDeviceEventType()) {
                                 case GEO_FENCE_ENTER:
                                 case GEO_FENCE_EXIT:
@@ -222,12 +219,12 @@ eventRule:          for (EventRule eventRule : eventRules) {
                 }
             }
 
-            logger2.warning("user before events iteration");
+            logger.warning("user before events iteration");
             for (Map.Entry<User, Set<DeviceEvent>> entry : events.entrySet()) {
                 User user = entry.getKey();
-                logger2.warning("user [getLogin:" + user.getLogin() + "] [getFirstName:" + user.getFirstName() + "]");
+                logger.warning("user [getLogin:" + user.getLogin() + "] [getFirstName:" + user.getFirstName() + "]");
                 for (DeviceEvent deviceEvent : entry.getValue()) {
-                    logger2.warning("deviceEvent [id:" + deviceEvent.getId() + "] [getType:" + deviceEvent.getType() + "] [getPosition:" + deviceEvent.getPosition() + "]");
+                    logger.warning("deviceEvent [id:" + deviceEvent.getId() + "] [getType:" + deviceEvent.getType() + "] [getPosition:" + deviceEvent.getPosition() + "]");
                 }
             }
 
@@ -274,12 +271,12 @@ eventRule:          for (EventRule eventRule : eventRules) {
 //            posTime.setDate(3);
             posTime.setHours(pos.getTime().getHours());
             posTime.setMinutes(pos.getTime().getMinutes());
-            logger2.warning("[posTime:" + posTime + "] [timeFrame:" + timeFrame.trim() + "] [timeZoneShift:" + timeZoneShift + "]");
+            logger.warning("[posTime:" + posTime + "] [timeFrame:" + timeFrame.trim() + "] [timeZoneShift:" + timeZoneShift + "]");
 
             timeFrame = timeFrame.trim().toUpperCase();
             Matcher matcher = EVENT_RULE_TIME_FRAME_PATTERN.matcher(timeFrame);
             while (matcher.find()) {
-                logger2.warning("[group:" + matcher.group() + "]");
+                logger.warning("[group:" + matcher.group() + "]");
                 String fromTime = timeFrame.substring(matcher.start(1), matcher.end(1));
                 String toTime = timeFrame.substring(matcher.start(3), matcher.end(3));
                 fromTime = fromTime.replace("AM", " AM");
@@ -319,11 +316,11 @@ eventRule:          for (EventRule eventRule : eventRules) {
                 toEventRulePlus1.setTime(3*24*60*60*1000 + toEventRule.getTime() - new Date().getTimezoneOffset()*60*1000 + timeZoneShift);
 //                fromEventRulePlus1.setDate(3);
 //                toEventRulePlus1.setDate(3);
-                logger2.warning("[fromEventRule0:" + fromEventRule0 + "] [toEventRule0:" + toEventRule0 + "]");
+                logger.warning("[fromEventRule0:" + fromEventRule0 + "] [toEventRule0:" + toEventRule0 + "]");
                 if (fromEventRule0.before(posTime) && toEventRule0.after(posTime)
                         || fromEventRuleMinus1.before(posTime) && toEventRuleMinus1.after(posTime)
                         || fromEventRulePlus1.before(posTime) && toEventRulePlus1.after(posTime)) {
-                    logger2.warning("return true");
+                    logger.warning("return true");
                     return true;
                 }
             }
@@ -335,17 +332,17 @@ eventRule:          for (EventRule eventRule : eventRules) {
                 return true;
             }
             Double posCourse = pos.getCourse();
-            logger2.warning("[posCourse:" + posCourse + "] [course:" + course.trim() + "]");
+            logger.warning("[posCourse:" + posCourse + "] [course:" + course.trim() + "]");
 
             course = course.trim().toUpperCase();
             Matcher matcher = EVENT_RULE_COURSE_PATTERN.matcher(course);
             while (matcher.find()) {
-                logger2.warning("[group:" + matcher.group() + "]");
+                logger.warning("[group:" + matcher.group() + "]");
                 String fromCourse = course.substring(matcher.start(1), matcher.end(1));
                 String toCourse = course.substring(matcher.start(2), matcher.end(2));
-                logger2.warning("[fromCourse:" + fromCourse + "] [toCourse:" + toCourse + "]");
+                logger.warning("[fromCourse:" + fromCourse + "] [toCourse:" + toCourse + "]");
                 if (Double.valueOf(fromCourse) < posCourse && Double.valueOf(toCourse) > posCourse) {
-                    logger2.warning("return true");
+                    logger.warning("return true");
                     return true;
                 }
             }
@@ -375,7 +372,7 @@ eventRule:          for (EventRule eventRule : eventRules) {
         }
 
         private void  addEvent(Map<User, Set<DeviceEvent>> events, User user, DeviceEvent event) {
-            logger2.warning("NotificationServiceImpl.NotificationSender.addEvent()");
+            logger.warning("NotificationServiceImpl.NotificationSender.addEvent()");
             // check whether user wants to receive such notification events
             // check whether user account is blocked or expired
             if (user.isBlocked() || user.isExpired()) {
@@ -396,7 +393,7 @@ eventRule:          for (EventRule eventRule : eventRules) {
         }
 
         private NotificationSettings findNotificationSettings(User user) {
-            logger2.warning("NotificationServiceImpl.NotificationSender.findNotificationSettings()");
+            logger.warning("NotificationServiceImpl.NotificationSender.findNotificationSettings()");
             NotificationSettings s = getNotificationSettings(user);
 
             // lookup settings in manager hierarchy
