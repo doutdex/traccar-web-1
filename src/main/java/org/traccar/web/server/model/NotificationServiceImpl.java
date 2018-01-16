@@ -136,8 +136,8 @@ public class NotificationServiceImpl extends RemoteServiceServlet implements Not
                 }
 
                     Device device = event.getDevice();
-                    logger.warning("01 [type:" + event.getType() + "] [device.SendNotifications:" + device.getSendNotifications() + "]");
-                    if (Boolean.FALSE.equals(device.getSendNotifications())) {
+                    logger.warning("01 [type:" + event.getType() + "] [device.SendNotifications:" + device.isSendNotifications() + "]");
+                    if (!device.isSendNotifications()) {
                         continue;
                     }
 
@@ -168,8 +168,8 @@ public class NotificationServiceImpl extends RemoteServiceServlet implements Not
                         .setParameter("types", eventRuleTypes)
                         .getResultList()) {
                     Device device = event.getDevice();
-                    logger.warning("02 [type:" + event.getType() + "] [device.SendNotifications:" + device.getSendNotifications() + "]");
-                    if (Boolean.FALSE.equals(device.getSendNotifications())) {
+                    logger.warning("02 [type:" + event.getType() + "] [device.SendNotifications:" + device.isSendNotifications() + "]");
+                    if (!device.isSendNotifications()) {
                         continue;
                     }
 
