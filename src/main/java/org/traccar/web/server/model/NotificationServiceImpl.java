@@ -61,7 +61,7 @@ import java.util.regex.Pattern;
 
 @Singleton
 public class NotificationServiceImpl extends RemoteServiceServlet implements NotificationService {
-    private static Pattern EVENT_RULE_TIME_FRAME_PATTERN = Pattern.compile(EventRule.TIMEFRAME_REGEX, Pattern.CASE_INSENSITIVE);
+    private static Pattern EVENT_RULE_TIME_FRAME_PATTERN = Pattern.compile(EventRule.TIME_FRAME_REGEX, Pattern.CASE_INSENSITIVE);
     private static Pattern EVENT_RULE_COURSE_PATTERN = Pattern.compile(EventRule.COURSE_REGEX);
     private static SimpleDateFormat EVENT_RULE_TIME_FRAME_FORMAT_01 = new SimpleDateFormat("h:mm a");
     private static SimpleDateFormat EVENT_RULE_TIME_FRAME_FORMAT_02 = new SimpleDateFormat("h a");
@@ -99,14 +99,17 @@ public class NotificationServiceImpl extends RemoteServiceServlet implements Not
                 eventTypes.addAll(user.getNotificationEvents());
             }
 
-            Set<DeviceEventType> eventRuleTypes = new HashSet<DeviceEventType>();
-            Set<EventRule> eventRules = new HashSet<EventRule>();
+            Map<User, Set<EventRule>> eventRules = new HashMap<>();
             for (EventRule eventRule : entityManager.get().createQuery("FROM EventRule", EventRule.class).getResultList()) {
-                eventRuleTypes.add(eventRule.getDeviceEventType());
-                eventRules.add(eventRule);
+                eventTypes.add(eventRule.getDeviceEventType());
+                Set<EventRule> userRules = eventRules.get(eventRule.getUser());
+                if (userRules == null) {
+                    eventRules.put(eventRule.getUser(), userRules = new HashSet<>());
+                }
+                userRules.add(eventRule);
             }
 
-            if (eventTypes.isEmpty() && eventRuleTypes.isEmpty()) {
+            if (eventTypes.isEmpty()) {
                 return;
             }
 
@@ -116,7 +119,6 @@ public class NotificationServiceImpl extends RemoteServiceServlet implements Not
             Map<User, List<User>> managers = new HashMap<>();
             Date currentDate = new Date();
 
-            // 01 User_Notification table
             if (!eventTypes.isEmpty()) {
                 for (DeviceEvent event : entityManager.get().createQuery(
                     "SELECT e FROM DeviceEvent e INNER JOIN FETCH e.position" +
@@ -127,20 +129,38 @@ public class NotificationServiceImpl extends RemoteServiceServlet implements Not
                                     .setParameter("false", false)
                         .setParameter("types", eventTypes)
                         .getResultList()) {
-                // check whether event is expired
-                if (currentDate.getTime() - event.getTime().getTime() > appSettings.getNotificationExpirationPeriod() * 1000 * 60) {
-                    event.setExpired(true);
-                    continue;
-                }
 
+                    // check whether device supports sending of notifications
                     Device device = event.getDevice();
                     if (!device.isSendNotifications()) {
                         continue;
                     }
 
+                    // check whether event is expired
+                    if (currentDate.getTime() - event.getTime().getTime() > appSettings.getNotificationExpirationPeriod() * 1000 * 60) {
+                        event.setExpired(true);
+                        continue;
+                    }
+
                     for (User user : device.getUsers()) {
-                        if (user.getNotificationEvents().contains(event.getType())) {
-                            addEventToUserAndManagers(events, user, event, managers);
+                        addEvent(events, user, event, eventRules.get(user));
+                        List<User> userManagers = managers.get(user);
+                        if (userManagers == null) {
+                            userManagers = new LinkedList<>();
+                            User manager = user.getManagedBy();
+                            while (manager != null) {
+                                if (!manager.getNotificationEvents().isEmpty()) {
+                                    userManagers.add(manager);
+                                }
+                                manager = manager.getManagedBy();
+                            }
+                            if (userManagers.isEmpty()) {
+                                userManagers = Collections.emptyList();
+                            }
+                            managers.put(user, userManagers);
+                        }
+                        for (User manager : userManagers) {
+                            addEvent(events, manager, event, eventRules.get(manager));
                         }
                     }
 
@@ -153,54 +173,7 @@ public class NotificationServiceImpl extends RemoteServiceServlet implements Not
                     }
 
                     for (User admin : admins) {
-                        addEvent(events, admin, event);
-                    }
-                }
-            }
-
-            // 02 Event Rules table
-            if (!eventRuleTypes.isEmpty()) {
-                for (DeviceEvent event : entityManager.get().createQuery("SELECT e FROM DeviceEvent e INNER JOIN FETCH e.position WHERE e.notificationSent = :false AND e.type IN (:types)", DeviceEvent.class)
-                        .setParameter("false", false)
-                        .setParameter("types", eventRuleTypes)
-                        .getResultList()) {
-                    Device device = event.getDevice();
-                    if (!device.isSendNotifications()) {
-                        continue;
-                    }
-
-                    if (admins == null) {
-                        admins = entityManager.get().createQuery("SELECT u FROM User u WHERE u.admin=:true", User.class)
-                                .setParameter("true", true)
-                                .getResultList();
-                    }
-
-                    if (new Date().getTime() - event.getPosition().getTime().getTime() > 3*60*60*1000) {
-                        event.setNotificationSent(true);
-                        continue;
-                    }
-eventRule:          for (EventRule eventRule : eventRules) {
-                        if (event.getDevice().getId() == eventRule.getDevice().getId() && event.getType() == eventRule.getDeviceEventType()
-                                && (event.getDevice().getUsers().contains(eventRule.getUser()) || admins.contains(eventRule.getUser()))
-                                && isTimeFrameOk(event.getPosition(), eventRule.getTimeFrame(), eventRule.getTimeZoneShift())
-                                && isCourseOk(event.getPosition(), eventRule.getCourse())) {
-                            switch (eventRule.getDeviceEventType()) {
-                                case GEO_FENCE_ENTER:
-                                case GEO_FENCE_EXIT:
-                                    if (eventRule.getGeoFence() == null || (event.getGeoFence() != null && eventRule.getGeoFence() != null && event.getGeoFence().getId() == eventRule.getGeoFence().getId())) {
-                                        addEventToUserAndManagers(events, eventRule.getUser(), event, managers);
-                                        continue eventRule;
-                                    }
-                                    break;
-                                case MAINTENANCE_REQUIRED:
-                                case MOVING:
-                                case OFFLINE:
-                                case OVERSPEED:
-                                case STOPPED:
-                                    addEventToUserAndManagers(events, eventRule.getUser(), event, managers);
-                                    continue eventRule;
-                            }
-                        }
+                        addEvent(events, admin, event, eventRules.get(admin));
                     }
                 }
             }
@@ -239,10 +212,12 @@ eventRule:          for (EventRule eventRule : eventRules) {
             }
         }
 
-        private Boolean isTimeFrameOk(Position pos, String timeFrame, Long timeZoneShift) {
-            if (timeFrame == null || timeFrame.trim().length() == 0) {
+        private Boolean isTimeFrameOk(Position pos, String timeFrame, TimeZone timeZone) {
+            if (timeFrame == null || timeFrame.trim().isEmpty()) {
                 return true;
             }
+
+            int timeZoneShift = timeZone.getOffset(pos.getTime().getTime());
             Date posTime = new Date();
             posTime.setTime(2*24*60*60*1000);
             posTime.setHours(pos.getTime().getHours());
@@ -313,29 +288,35 @@ eventRule:          for (EventRule eventRule : eventRules) {
             return false;
         }
 
-        private void  addEventToUserAndManagers(Map<User, Set<DeviceEvent>> events, User user, DeviceEvent event, Map<User, List<User>> managers) {
-            addEvent(events, user, event);
-            List<User> userManagers = managers.get(user);
-            if (userManagers == null) {
-                userManagers = new LinkedList<>();
-                User manager = user.getManagedBy();
-                while (manager != null) {
-                    if (!manager.getNotificationEvents().isEmpty()) {
-                        userManagers.add(manager);
+        private boolean checkEventRules(User user, DeviceEvent event, Set<EventRule> eventRules) {
+            if (eventRules == null) {
+                return true;
+            }
+
+            boolean hasAppropriateRule = false;
+            for (EventRule eventRule : eventRules) {
+                if (eventRule.getDeviceEventType() == event.getType() && event.getDevice().equals(eventRule.getDevice())) {
+                    hasAppropriateRule = true;
+                    if (isTimeFrameOk(event.getPosition(), eventRule.getTimeFrame(), getTimeZone(user))
+                            && isCourseOk(event.getPosition(), eventRule.getCourse())) {
+                        switch (eventRule.getDeviceEventType()) {
+                            case GEO_FENCE_ENTER:
+                            case GEO_FENCE_EXIT:
+                                if (eventRule.getGeoFence() == null
+                                        || (event.getGeoFence() != null && eventRule.getGeoFence() != null && event.getGeoFence().equals(eventRule.getGeoFence()))) {
+                                    return true;
+                                }
+                            default:
+                                return true;
+                        }
                     }
-                    manager = manager.getManagedBy();
                 }
-                if (userManagers.isEmpty()) {
-                    userManagers = Collections.emptyList();
-                }
-                managers.put(user, userManagers);
             }
-            for (User manager : userManagers) {
-                addEvent(events, manager, event);
-            }
+
+            return !hasAppropriateRule;
         }
 
-        private void  addEvent(Map<User, Set<DeviceEvent>> events, User user, DeviceEvent event) {
+        private void addEvent(Map<User, Set<DeviceEvent>> events, User user, DeviceEvent event, Set<EventRule> eventRules) {
             // check whether user wants to receive such notification events
             // check whether user account is blocked or expired
             if (user.isBlocked() || user.isExpired()) {
@@ -345,6 +326,10 @@ eventRule:          for (EventRule eventRule : eventRules) {
             if ((event.getType() == DeviceEventType.GEO_FENCE_ENTER || event.getType() == DeviceEventType.GEO_FENCE_EXIT)
                     && !user.hasAccessTo(event.getGeoFence())) {
                 return;
+            }
+            // check user notification settings
+            if (!user.getNotificationEvents().contains(event.getType()) || !checkEventRules(user, event, eventRules)) {
+
             }
 
             Set<DeviceEvent> userEvents = events.get(user);

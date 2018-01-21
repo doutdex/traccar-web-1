@@ -28,7 +28,6 @@ import com.sencha.gxt.widget.core.client.box.AlertMessageBox;
 import com.sencha.gxt.widget.core.client.box.ConfirmMessageBox;
 import com.sencha.gxt.widget.core.client.button.TextButton;
 import com.sencha.gxt.widget.core.client.event.DialogHideEvent;
-import com.sencha.gxt.widget.core.client.box.AlertMessageBox;
 import com.sencha.gxt.widget.core.client.form.*;
 import com.sencha.gxt.widget.core.client.form.validator.RegExValidator;
 import com.sencha.gxt.widget.core.client.grid.*;
@@ -36,8 +35,6 @@ import com.sencha.gxt.widget.core.client.grid.editing.GridEditing;
 import com.sencha.gxt.widget.core.client.grid.editing.GridInlineEditing;
 import com.sencha.gxt.widget.core.client.selection.SelectionChangedEvent;
 import org.traccar.web.client.ApplicationContext;
-import org.traccar.web.client.controller.DeviceController;
-import org.traccar.web.client.controller.GeoFenceController;
 import org.traccar.web.client.i18n.Messages;
 import org.traccar.web.client.model.*;
 import org.traccar.web.shared.model.*;
@@ -53,13 +50,12 @@ import com.sencha.gxt.widget.core.client.Window;
 import com.sencha.gxt.widget.core.client.event.SelectEvent;
 
 import java.util.*;
-import java.util.logging.Logger;
+
 import com.google.gwt.regexp.shared.RegExp;
 
 public class UserDialog implements Editor<User> {
-
-    private static RegExp EVENT_RULE_TIME_FRAME_PATTERN = RegExp.compile("^" + EventRule.TIMEFRAME_REGEX + "?,+$", "i");
-    private static RegExp EVENT_RULE_COURSE_PATTERN = RegExp.compile("^" + EventRule.COURSE_REGEX + "?,+$");
+    private static RegExp EVENT_RULE_TIME_FRAME_PATTERN = RegExp.compile("^" + EventRule.TIME_FRAME_REGEX + "(," + EventRule.TIME_FRAME_REGEX + ")*$", "i");
+    private static RegExp EVENT_RULE_COURSE_PATTERN = RegExp.compile("^" + EventRule.COURSE_REGEX + "(," + EventRule.COURSE_REGEX +")*$");
 
     private static UserDialogUiBinder uiBinder = GWT.create(UserDialogUiBinder.class);
 

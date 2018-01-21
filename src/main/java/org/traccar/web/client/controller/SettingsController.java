@@ -311,7 +311,6 @@ public class SettingsController implements NavView.SettingsHandler {
                 for (Store.Change<EventRule, ?> change : record.getChanges()) {
                     change.modify(eventRule);
                 }
-                eventRule.setTimeZoneShift(new Date().getTimezoneOffset() * 60 * 1000L);
                 if (eventRule.getId() <= 0) {
                     eventRule.setId(0);
                     service.addEventRule(user, eventRule, new BaseAsyncCallback<EventRule>(i18n) {
