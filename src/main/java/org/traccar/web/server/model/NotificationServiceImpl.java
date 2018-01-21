@@ -212,12 +212,12 @@ public class NotificationServiceImpl extends RemoteServiceServlet implements Not
             }
         }
 
-        private Boolean isTimeFrameOk(Position pos, String timeFrame, TimeZone timeZone) {
+        protected boolean isTimeFrameOk(Position pos, String timeFrame, TimeZone timeZone) {
             if (timeFrame == null || timeFrame.trim().isEmpty()) {
                 return true;
             }
 
-            int timeZoneShift = timeZone.getOffset(pos.getTime().getTime());
+            int timeZoneShift = -timeZone.getOffset(pos.getTime().getTime());
             Date posTime = new Date();
             posTime.setTime(2*24*60*60*1000);
             posTime.setHours(pos.getTime().getHours());
@@ -227,7 +227,7 @@ public class NotificationServiceImpl extends RemoteServiceServlet implements Not
             Matcher matcher = EVENT_RULE_TIME_FRAME_PATTERN.matcher(timeFrame);
             while (matcher.find()) {
                 String fromTime = timeFrame.substring(matcher.start(1), matcher.end(1));
-                String toTime = timeFrame.substring(matcher.start(3), matcher.end(3));
+                String toTime = timeFrame.substring(matcher.start(4), matcher.end(4));
                 fromTime = fromTime.replace("AM", " AM");
                 fromTime = fromTime.replace("PM", " PM");
                 toTime = toTime.replace("AM", " AM");
@@ -261,27 +261,29 @@ public class NotificationServiceImpl extends RemoteServiceServlet implements Not
 
                 fromEventRulePlus1.setTime(3*24*60*60*1000 + fromEventRule.getTime() - new Date().getTimezoneOffset()*60*1000 + timeZoneShift);
                 toEventRulePlus1.setTime(3*24*60*60*1000 + toEventRule.getTime() - new Date().getTimezoneOffset()*60*1000 + timeZoneShift);
-                if (fromEventRule0.before(posTime) && toEventRule0.after(posTime)
-                        || fromEventRuleMinus1.before(posTime) && toEventRuleMinus1.after(posTime)
-                        || fromEventRulePlus1.before(posTime) && toEventRulePlus1.after(posTime)) {
+                if ((posTime.getTime() >= fromEventRule0.getTime() && posTime.getTime() <= toEventRule0.getTime())
+                        || (posTime.getTime() >= fromEventRuleMinus1.getTime() && posTime.getTime() <= toEventRuleMinus1.getTime())
+                        || (posTime.getTime() >= fromEventRulePlus1.getTime() && posTime.getTime() <= toEventRulePlus1.getTime())) {
                     return true;
                 }
             }
             return false;
         }
 
-        private Boolean isCourseOk(Position pos, String course) {
-            if (pos.getCourse() == null || course == null || course.trim().length() == 0) {
+        protected boolean isCourseOk(Position pos, String course) {
+            if (pos.getCourse() == null || course == null || course.trim().isEmpty()) {
                 return true;
             }
+            final double eps = 0.001;
             Double posCourse = pos.getCourse();
 
             course = course.trim().toUpperCase();
             Matcher matcher = EVENT_RULE_COURSE_PATTERN.matcher(course);
             while (matcher.find()) {
-                String fromCourse = course.substring(matcher.start(1), matcher.end(1));
-                String toCourse = course.substring(matcher.start(2), matcher.end(2));
-                if (Double.valueOf(fromCourse) < posCourse && Double.valueOf(toCourse) > posCourse) {
+                double fromCourse = Double.parseDouble(course.substring(matcher.start(1), matcher.end(1)));
+                double toCourse = Double.parseDouble(course.substring(matcher.start(2), matcher.end(2)));
+                if ((posCourse > fromCourse || Math.abs(posCourse - fromCourse) <= eps)
+                        && (posCourse < toCourse || Math.abs(posCourse - toCourse) <= eps)) {
                     return true;
                 }
             }
