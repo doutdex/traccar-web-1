@@ -62,6 +62,7 @@ import java.util.regex.Pattern;
 @Singleton
 public class NotificationServiceImpl extends RemoteServiceServlet implements NotificationService {
     private static Pattern EVENT_RULE_TIME_FRAME_PATTERN = Pattern.compile(EventRule.TIME_FRAME_REGEX, Pattern.CASE_INSENSITIVE);
+    private static Pattern EVENT_RULE_DAY_OF_WEEK_FRAME_PATTERN = Pattern.compile(EventRule.DAY_OF_WEEK_FRAME_REGEX, Pattern.CASE_INSENSITIVE);
     private static Pattern EVENT_RULE_COURSE_PATTERN = Pattern.compile(EventRule.COURSE_REGEX);
     private static SimpleDateFormat EVENT_RULE_TIME_FRAME_FORMAT_01 = new SimpleDateFormat("h:mm a");
     private static SimpleDateFormat EVENT_RULE_TIME_FRAME_FORMAT_02 = new SimpleDateFormat("h a");
@@ -270,6 +271,20 @@ public class NotificationServiceImpl extends RemoteServiceServlet implements Not
             return false;
         }
 
+        protected boolean isDayOfWeekOk(Position pos, String dayOfWeek, TimeZone timeZone) {
+            if (dayOfWeek == null || dayOfWeek.trim().isEmpty()) {
+                return true;
+            }
+
+            // TODO implement
+            Matcher matcher = EVENT_RULE_DAY_OF_WEEK_FRAME_PATTERN.matcher(dayOfWeek);
+            while (matcher.find()) {
+
+            }
+
+            return true;
+        }
+
         protected boolean isCourseOk(Position pos, String course) {
             if (pos.getCourse() == null || course == null || course.trim().isEmpty()) {
                 return true;
@@ -300,6 +315,7 @@ public class NotificationServiceImpl extends RemoteServiceServlet implements Not
                 if (eventRule.getDeviceEventType() == event.getType() && event.getDevice().equals(eventRule.getDevice())) {
                     hasAppropriateRule = true;
                     if (isTimeFrameOk(event.getPosition(), eventRule.getTimeFrame(), getTimeZone(user))
+                            && isDayOfWeekOk(event.getPosition(), eventRule.getTimeFrame(), getTimeZone(user))
                             && isCourseOk(event.getPosition(), eventRule.getCourse())) {
                         switch (eventRule.getDeviceEventType()) {
                             case GEO_FENCE_ENTER:
