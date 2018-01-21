@@ -58,8 +58,8 @@ import com.google.gwt.regexp.shared.RegExp;
 
 public class UserDialog implements Editor<User> {
 
-    private static RegExp EVENT_RULE_TIME_FRAME_PATTERN = RegExp.compile("^(\\d{1,2}(:\\d{1,2})?[ap]m\\-\\d{1,2}(:\\d{1,2})?[ap]m,)+$");
-    private static RegExp EVENT_RULE_COURSE_PATTERN = RegExp.compile("^(\\d{1,3}\\-\\d{1,3},)+$");
+    private static RegExp EVENT_RULE_TIME_FRAME_PATTERN = RegExp.compile("^" + EventRule.TIMEFRAME_REGEX + "?,+$", "i");
+    private static RegExp EVENT_RULE_COURSE_PATTERN = RegExp.compile("^" + EventRule.COURSE_REGEX + "?,+$");
 
     private static UserDialogUiBinder uiBinder = GWT.create(UserDialogUiBinder.class);
 
@@ -381,11 +381,11 @@ public class UserDialog implements Editor<User> {
                 invalidEventRules.add(originalEventRule);
                 break;
             }
-            if (eventRule.getTimeFrame() != null && !EVENT_RULE_TIME_FRAME_PATTERN.test(eventRule.getTimeFrame().trim() + ",")) {
+            if (eventRule.getTimeFrame() != null && !EVENT_RULE_TIME_FRAME_PATTERN.test(eventRule.getTimeFrame().trim())) {
                 invalidEventRules.add(originalEventRule);
                 break;
             }
-            if (eventRule.getCourse() != null && !EVENT_RULE_COURSE_PATTERN.test(eventRule.getCourse().trim() + ",")) {
+            if (eventRule.getCourse() != null && !EVENT_RULE_COURSE_PATTERN.test(eventRule.getCourse().trim())) {
                 invalidEventRules.add(originalEventRule);
                 break;
             }

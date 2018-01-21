@@ -61,8 +61,8 @@ import java.util.regex.Pattern;
 
 @Singleton
 public class NotificationServiceImpl extends RemoteServiceServlet implements NotificationService {
-    private static Pattern EVENT_RULE_TIME_FRAME_PATTERN = Pattern.compile("(\\d{1,2}(:\\d{1,2})?[AP]M)\\-(\\d{1,2}(:\\d{1,2})?[AP]M)");
-    private static Pattern EVENT_RULE_COURSE_PATTERN = Pattern.compile("(\\d{1,3})\\-(\\d{1,3})");
+    private static Pattern EVENT_RULE_TIME_FRAME_PATTERN = Pattern.compile(EventRule.TIMEFRAME_REGEX, Pattern.CASE_INSENSITIVE);
+    private static Pattern EVENT_RULE_COURSE_PATTERN = Pattern.compile(EventRule.COURSE_REGEX);
     private static SimpleDateFormat EVENT_RULE_TIME_FRAME_FORMAT_01 = new SimpleDateFormat("h:mm a");
     private static SimpleDateFormat EVENT_RULE_TIME_FRAME_FORMAT_02 = new SimpleDateFormat("h a");
 

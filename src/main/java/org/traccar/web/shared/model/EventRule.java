@@ -25,6 +25,9 @@ import java.util.Date;
 @Entity
 @Table(name = "event_rules")
 public class EventRule implements IsSerializable {
+    public static final String TIME_REGEX = "(\\d{1,2}(:\\d{1,2})?[ap]m)";
+    public static final String TIMEFRAME_REGEX = TIME_REGEX + "\\-" + TIME_REGEX;
+    public static final String COURSE_REGEX = "(\\d{1,3})\\-(\\d{1,3})";
 
     public EventRule() {
     }
